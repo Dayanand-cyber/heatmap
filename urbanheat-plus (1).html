@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UrbanHeat+ | Heat Stress Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --accent: #ff6b35;
+    --safe: #22c55e;
+    --caution: #eab308;
+    --extreme-caution: #f97316;
+    --danger: #ef4444;
+    --extreme-danger: #7f1d1d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255,107,53,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(239,68,68,0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #ff6b35, #ef4444);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, #ff6b35 0%, #ff9a35 50%, #ef4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s ease both;
+    animation-delay: 0.1s;
+  }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]::placeholder { color: var(--muted); }
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  /* Dynamic suggestions section */
+  #suggestions {
+    display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .suggestions-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  .suggestion-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-radius: 10px;
+    border-left: 3px solid currentColor;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .suggestion-item .s-icon { flex-shrink: 0; font-size: 1rem; }
+
+  .btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, #ff6b35, #ef4444);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(255,107,53,0.35);
+  }
+
+  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn .spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+
+  .btn.loading .btn-text { display: none; }
+  .btn.loading .spinner { display: block; }
+
+  /* Result card */
+  #result {
+    display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+  }
+
+  .result-ward {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .risk-badge {
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1.5px solid currentColor;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .metric {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .metric-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .metric-label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  /* Risk bar */
+  .risk-bar-wrap {
+    margin-bottom: 24px;
+  }
+
+  .risk-bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .risk-bar-bg {
+    height: 8px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .risk-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444, #7f1d1d);
+  }
+
+  /* Recommendation box */
+  .recommendation {
+    background: var(--bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .rec-icon { margin-right: 6px; }
+
+  /* Error */
+  #error {
+    display: none;
+    padding: 14px 18px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 12px;
+    color: #ef4444;
+    font-size: 0.9rem;
+    margin-top: 16px;
+  }
+
+  /* Info bar */
+  .info-strip {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    animation: fadeUp 0.6s ease both;
+    animation-delay: 0.2s;
+  }
+
+  .chip {
+    padding: 6px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* SAFE: green */
+  .risk-safe .metric-value { color: var(--safe); }
+  .risk-safe .risk-badge { color: var(--safe); }
+  .risk-safe .recommendation { border-left-color: var(--safe); }
+  /* CAUTION: yellow */
+  .risk-caution .metric-value { color: var(--caution); }
+  .risk-caution .risk-badge { color: var(--caution); }
+  .risk-caution .recommendation { border-left-color: var(--caution); }
+  /* EXTREME_CAUTION: orange */
+  .risk-extreme_caution .metric-value { color: var(--extreme-caution); }
+  .risk-extreme_caution .risk-badge { color: var(--extreme-caution); }
+  .risk-extreme_caution .recommendation { border-left-color: var(--extreme-caution); }
+  /* DANGER: red */
+  .risk-danger .metric-value { color: var(--danger); }
+  .risk-danger .risk-badge { color: var(--danger); }
+  .risk-danger .recommendation { border-left-color: var(--danger); }
+  /* EXTREME_DANGER: dark red */
+  .risk-extreme_danger .metric-value { color: #ff4444; }
+  .risk-extreme_danger .risk-badge { color: #ff4444; }
+  .risk-extreme_danger .recommendation { border-left-color: #ff4444; }
+
+  @media(max-width: 480px) {
+    .metrics-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric-value { font-size: 1.6rem; }
+    .card { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-line">
+      <div class="logo-icon">🌡️</div>
+      <h1>UrbanHeat+</h1>
+    </div>
+    <p class="tagline">Heat Stress Intelligence for Outdoor Workers</p>
+  </header>
+
+  <div class="card">
+    <label for="location-input">Enter Location</label>
+    <input type="text" id="location-input" placeholder="e.g. Edappally, Kochi or Mumbai" autocomplete="off" />
+
+    <button class="btn" id="check-btn" onclick="checkHeat()" disabled>
+      <span class="btn-text">Check Heat Risk</span>
+      <div class="spinner"></div>
+    </button>
+
+    <div id="error"></div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="card" id="result">
+    <div class="result-header">
+      <div>
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:4px">Ward</div>
+        <div class="result-ward" id="res-ward">—</div>
+      </div>
+      <div class="risk-badge" id="res-badge">—</div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-value" id="res-temp">—</div>
+        <div class="metric-label">Temp °C</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="res-humidity">—</div>
+        <div class="metric-label">Humidity %</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="res-hi">—</div>
+        <div class="metric-label">Heat Index</div>
+      </div>
+    </div>
+
+    <div class="risk-bar-wrap">
+      <div class="risk-bar-label">
+        <span style="font-size:0.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Risk Level</span>
+        <span style="font-size:0.7rem;color:var(--muted)" id="res-risk-label">—</span>
+      </div>
+      <div class="risk-bar-bg">
+        <div class="risk-bar-fill" id="risk-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="recommendation" id="res-rec">—</div>
+  </div>
+
+  <!-- Dynamic Suggestions Card -->
+  <div class="card" id="suggestions">
+    <div class="suggestions-title">Safety Guidance</div>
+    <ul class="suggestion-list" id="suggestion-list"></ul>
+  </div>
+
+  <div class="info-strip">
+    <span class="chip">🔴 Powered by OpenWeather API</span>
+    <span class="chip">⚡ AWS Lambda Serverless</span>
+    <span class="chip">🔢 NOAA Heat Index Formula</span>
+  </div>
+</div>
+
+<script>
+  // ════════════════════════════════════════════════════════════
+  //  MOCK DATA TOGGLE
+  //  Set useMockData = true  → use mockTemp / mockHumidity below
+  //  Set useMockData = false → fetch live data from OpenWeather
+  // ════════════════════════════════════════════════════════════
+  const useMockData   = false;   // ← TOGGLE: true = mock, false = live API
+  const mockTemp      = 38;      // ← EDIT: mock temperature in °C
+  const mockHumidity  = 82;      // ← EDIT: mock humidity in %
+
+  // ════════════════════════════════════════════════════════════
+  //  API CONFIGURATION
+  //  For direct browser calls (no Lambda), add your key below.
+  //  For production (Lambda), leave this empty — key stays
+  //  server-side in the environment variable.
+  // ════════════════════════════════════════════════════════════
+  const OPENWEATHER_API_KEY = '';  // ← Add key here for direct browser use
+  //  OR set your Lambda URL:
+  const LAMBDA_URL          = '';  // ← e.g. 'https://abc.execute-api.ap-south-1.amazonaws.com/heatRisk'
+
+  // ════════════════════════════════════════════════════════════
+  //  RISK CONFIGURATION — titles, descriptions, actions, colors
+  // ════════════════════════════════════════════════════════════
+  const riskConfig = {
+    SAFE: {
+      color: '#22c55e',
+      pct: 10,
+      emoji: '✅',
+      title: 'Safe Conditions',
+      description: 'Outdoor work can continue normally.',
+      rec: 'Maintain hydration and wear breathable clothing.',
+      actions: [
+        { icon: '💧', text: 'Maintain hydration throughout the day.' },
+        { icon: '👕', text: 'Wear breathable, light-coloured clothing.' },
+        { icon: '🕐', text: 'Take routine breaks as per your schedule.' }
+      ]
+    },
+    CAUTION: {
+      color: '#eab308',
+      pct: 30,
+      emoji: '⚠️',
+      title: 'Mild Heat Stress Risk',
+      description: 'Prolonged exposure may cause fatigue.',
+      rec: 'Drink water every 30 minutes. Take 5–10 min breaks hourly.',
+      actions: [
+        { icon: '💧', text: 'Drink water every 30 minutes — do not wait until thirsty.' },
+        { icon: '🕐', text: 'Take 5–10 minute rest breaks every hour.' },
+        { icon: '☀️', text: 'Avoid prolonged direct sunlight where possible.' }
+      ]
+    },
+    EXTREME_CAUTION: {
+      color: '#f97316',
+      pct: 55,
+      emoji: '🔶',
+      title: 'High Heat Stress Risk',
+      description: 'Increased risk of heat cramps and exhaustion.',
+      rec: '15-minute rest every hour. Increase water intake. Use head protection.',
+      actions: [
+        { icon: '🕐', text: '15-minute rest every hour in a cool, shaded spot.' },
+        { icon: '💧', text: 'Increase water intake — at least 250ml every 20 minutes.' },
+        { icon: '👀', text: 'Monitor coworkers for symptoms: dizziness, cramps, pale skin.' },
+        { icon: '🧢', text: 'Use head protection and light, breathable clothing.' }
+      ]
+    },
+    DANGER: {
+      color: '#ef4444',
+      pct: 75,
+      emoji: '🚨',
+      title: 'Severe Heat Risk',
+      description: 'High probability of heat exhaustion or heat stroke.',
+      rec: '20–30 min rest per hour. Avoid 12PM–3PM. Watch for dizziness and nausea.',
+      healthWarning: 'Heat exhaustion or heat stroke possible. Watch for confusion, nausea, heavy sweating.',
+      actions: [
+        { icon: '🛑', text: 'Avoid outdoor work between 12 PM – 3 PM.' },
+        { icon: '🕐', text: 'Mandatory 20–30 minute rest per hour in shaded/ventilated areas.' },
+        { icon: '💧', text: 'Drink water every 15 minutes. Electrolyte fluids strongly recommended.' },
+        { icon: '🤝', text: 'Use the buddy system — never work alone in these conditions.' },
+        { icon: '🏥', text: 'Watch for dizziness, nausea, confusion — act immediately if seen.' }
+      ]
+    },
+    EXTREME_DANGER: {
+      color: '#ff4444',
+      pct: 95,
+      emoji: '🆘',
+      title: 'Critical Heat Emergency',
+      description: 'Immediate danger of heat stroke.',
+      rec: 'Stop outdoor work immediately. Move to cool area. Seek medical help.',
+      healthWarning: 'Life-threatening heat stroke risk. Immediate action required.',
+      actions: [
+        { icon: '🆘', text: 'Stop all outdoor work immediately — this is a life-safety emergency.' },
+        { icon: '🏠', text: 'Move to a cool, air-conditioned area without delay.' },
+        { icon: '❄️', text: 'Begin rapid cooling: cold water, wet towels, fan if available.' },
+        { icon: '🏥', text: 'Seek medical help immediately if any symptoms appear.' },
+        { icon: '📞', text: 'Notify supervisors and activate emergency protocols now.' }
+      ]
+    }
+  };
+
+  // ════════════════════════════════════════════════════════════
+  //  NOAA HEAT INDEX FORMULA
+  //  Input: tempC (°C), humidity (%)
+  //  Output: Heat Index in °C, rounded to 1 decimal place
+  // ════════════════════════════════════════════════════════════
+  function calcHeatIndex(tempC, humidity) {
+    const T  = (tempC * 9 / 5) + 32;   // Step 1: Celsius → Fahrenheit
+    const RH = humidity;
+    // Step 2: NOAA formula (in °F)
+    const HI =
+      -42.379 +
+      2.04901523  * T        +
+      10.14333127 * RH       -
+      0.22475541  * T  * RH  -
+      6.83783e-3  * T  * T   -
+      5.481717e-2 * RH * RH  +
+      1.22874e-3  * T  * T  * RH +
+      8.5282e-4   * T  * RH * RH -
+      1.99e-6     * T  * T  * RH * RH;
+    // Step 3: Fahrenheit → Celsius, rounded to 1 decimal
+    return Math.round(((HI - 32) * 5 / 9) * 10) / 10;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  RISK CATEGORIZATION
+  // ════════════════════════════════════════════════════════════
+  function getRisk(heatIndex) {
+    if (heatIndex < 27) return 'SAFE';
+    if (heatIndex < 32) return 'CAUTION';
+    if (heatIndex < 41) return 'EXTREME_CAUTION';
+    if (heatIndex < 54) return 'DANGER';
+    return 'EXTREME_DANGER';
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  GEOCODING — location text → { lat, lon, name }
+  //  Uses OpenWeather Geocoding API
+  // ════════════════════════════════════════════════════════════
+  async function geocodeLocation(locationText) {
+    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationText)}&limit=1&appid=${OPENWEATHER_API_KEY}`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error('Unable to fetch weather data. Please try again.');
+    const data = await res.json();
+    if (!data || data.length === 0) throw new Error('Location not found. Please enter a valid area.');
+    const { lat, lon, name, state } = data[0];
+    return { lat, lon, name: name + (state ? `, ${state}` : '') };
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  WEATHER FETCH — { lat, lon } → { temperature, humidity }
+  //  Uses OpenWeather Current Weather API
+  // ════════════════════════════════════════════════════════════
+  async function fetchWeather(lat, lon) {
+    const url  = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error('Unable to fetch weather data. Please try again.');
+    const data = await res.json();
+    return {
+      temperature: Math.round(data.main.temp * 10) / 10,
+      humidity:    data.main.humidity
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  MAIN PIPELINE — orchestrates all steps
+  // ════════════════════════════════════════════════════════════
+  async function getHeatRiskData(locationText) {
+
+    // ── Option A: Lambda backend (production) ────────────────
+    if (LAMBDA_URL) {
+      const res = await fetch(LAMBDA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: locationText })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Unable to fetch weather data. Please try again.');
+      }
+      return await res.json();
+    }
+
+    // ── Option B: Direct browser → OpenWeather ───────────────
+    let temperature, humidity, resolvedName;
+
+    if (useMockData) {
+      // MOCK MODE — uses values defined at the top of this script
+      temperature  = mockTemp;
+      humidity     = mockHumidity;
+      resolvedName = toTitleCase(locationText) + ' (mock)';
+      // Simulate a brief loading delay so UI feels real
+      await new Promise(r => setTimeout(r, 600));
+    } else {
+      // LIVE MODE — real geocoding + weather API calls
+      if (!OPENWEATHER_API_KEY) {
+        throw new Error('No API key configured. Set OPENWEATHER_API_KEY or LAMBDA_URL at the top of the script.');
+      }
+      const geo  = await geocodeLocation(locationText);   // Step 1: text → lat/lon
+      resolvedName = geo.name;
+      const wx   = await fetchWeather(geo.lat, geo.lon);  // Step 2: lat/lon → weather
+      temperature  = wx.temperature;
+      humidity     = wx.humidity;
+    }
+
+    // Steps 3–4: calculate + categorise
+    const heatIndex = calcHeatIndex(temperature, humidity);
+    const riskLevel = getRisk(heatIndex);
+
+    return { location: resolvedName, temperature, humidity, heatIndex, riskLevel };
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  UI — input events
+  // ════════════════════════════════════════════════════════════
+  document.getElementById('location-input').addEventListener('input', function () {
+    document.getElementById('check-btn').disabled = this.value.trim().length < 2;
+  });
+  document.getElementById('location-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') checkHeat();
+  });
+
+  // ════════════════════════════════════════════════════════════
+  //  checkHeat() — called by button click
+  // ════════════════════════════════════════════════════════════
+  async function checkHeat() {
+    const locationText = document.getElementById('location-input').value.trim();
+    if (!locationText) return;
+
+    const btn   = document.getElementById('check-btn');
+    const errEl = document.getElementById('error');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    errEl.style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('suggestions').style.display = 'none';
+
+    try {
+      const data = await getHeatRiskData(locationText);
+      renderResult(data);
+    } catch (e) {
+      showError(e.message || 'Unable to fetch weather data. Please try again.');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  RENDER — updates result card + safety guidance card
+  // ════════════════════════════════════════════════════════════
+  function renderResult(data) {
+    const cfg       = riskConfig[data.riskLevel];
+    const riskClass = 'risk-' + data.riskLevel.toLowerCase();
+    const locLabel  = data.location || '—';
+
+    // ── Result card ──────────────────────────────────────────
+    const card = document.getElementById('result');
+    card.className = 'card ' + riskClass;
+
+    document.getElementById('res-ward').textContent       = locLabel;
+    document.getElementById('res-temp').textContent       = data.temperature + '°';
+    document.getElementById('res-humidity').textContent   = data.humidity + '%';
+    document.getElementById('res-hi').textContent         = data.heatIndex + '°';
+    document.getElementById('res-badge').textContent      = cfg.emoji + ' ' + data.riskLevel.replace(/_/g, ' ');
+    document.getElementById('res-risk-label').textContent = data.riskLevel.replace(/_/g, ' ');
+    document.getElementById('res-rec').innerHTML          =
+      `<span class="rec-icon">${cfg.emoji}</span> <strong>${cfg.title}:</strong> ${cfg.rec}`;
+
+    const bar = document.getElementById('risk-bar');
+    bar.style.width = '0%';
+    setTimeout(() => bar.style.width = cfg.pct + '%', 50);
+
+    card.style.display = 'block';
+
+    // ── Safety Guidance card ─────────────────────────────────
+    const sugCard = document.getElementById('suggestions');
+    const list    = document.getElementById('suggestion-list');
+    list.innerHTML = '';
+
+    // Description row
+    const descLi = document.createElement('li');
+    descLi.className = 'suggestion-item';
+    descLi.style.color = cfg.color;
+    descLi.innerHTML = `<span class="s-icon">📋</span><span style="color:var(--muted);font-style:italic">${cfg.description}</span>`;
+    list.appendChild(descLi);
+
+    // Health warning (if applicable)
+    if (cfg.healthWarning) {
+      const warnLi = document.createElement('li');
+      warnLi.className = 'suggestion-item';
+      warnLi.style.color = cfg.color;
+      warnLi.innerHTML = `<span class="s-icon">🩺</span><span style="color:${cfg.color};font-weight:600">${cfg.healthWarning}</span>`;
+      list.appendChild(warnLi);
+    }
+
+    // Action steps
+    cfg.actions.forEach(a => {
+      const li = document.createElement('li');
+      li.className = 'suggestion-item';
+      li.style.color = cfg.color;
+      li.innerHTML = `<span class="s-icon">${a.icon}</span><span style="color:var(--text)">${a.text}</span>`;
+      list.appendChild(li);
+    });
+
+    // Mock mode indicator
+    if (useMockData) {
+      const mockLi = document.createElement('li');
+      mockLi.className = 'suggestion-item';
+      mockLi.style.color = '#6b6b8a';
+      mockLi.innerHTML = `<span class="s-icon">🧪</span><span style="color:#6b6b8a">Mock mode active — temp: ${mockTemp}°C, humidity: ${mockHumidity}%. Set <code>useMockData = false</code> for live data.</span>`;
+      list.appendChild(mockLi);
+    }
+
+    sugCard.style.display = 'block';
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  HELPERS
+  // ════════════════════════════════════════════════════════════
+  function showError(msg) {
+    const errEl = document.getElementById('error');
+    errEl.textContent = '⚠️ ' + msg;
+    errEl.style.display = 'block';
+  }
+
+  function toTitleCase(str) {
+    return str.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+  }
+</script>
+</body>
+</html>
